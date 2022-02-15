@@ -28,6 +28,57 @@ Node.js скрипт, который сгенерирует код для ани
 node animationsCodeGen.js json_файл_из_ae.json
 ```
 
+## Пример сгенерированного кода (на примере одного слоя)
+
+Инициализация:
+
+```js
+l_udo = this._fSheeth_udo = this._getAssetContent(l_grsl, l_grsl.i_getSheethImgURL());
+l_udo.i_setLocalBoundsXY(-61, -59);
+l_udo.i_setXY(-22.5, 11);
+l_udoc.i_addChild(l_udo);
+```
+
+Анимация:
+
+```js
+//SHEETH...
+l_udo = this._fSheeth_udo;
+l_gut.i_callHandlerAtTime(0, l_udo.i_setVisible.i_toObjectMethod(l_udo), [true]);
+l_gut.i_callHandlerAtTime(1200, l_udo.i_setVisible.i_toObjectMethod(l_udo), [false]);
+l_gut.i_addAnimation(l_udo, GUTimeline.i_SET_XY, [-22.5, 11],
+	[
+		6,
+		[[-14.5, 5.5], 8],
+		[[-104.5, -0.5], 3],
+		[[-115, -2.5], 10],
+		[[-22.5, 11], 23]
+	]
+);
+
+l_gut.i_addAnimation(l_udo, GUTimeline.i_SET_ROTATION_IN_DEGREES, 0,
+	[
+		6,
+		[29, 8],
+		[-14.2, 3],
+		[-24.1, 10],
+		[6.1, 15],
+		[0, 33]
+	]
+);
+
+l_gut.i_addAnimation(l_udo, GUTimeline.i_SET_SCALE_XY, [1, 1],
+	[
+		6,
+		[[0.89, 0.89], 8],
+		[[1.12, 1.12], 3],
+		[[1.12, 1.12], 10],
+		[[1, 1], 23]
+	]
+);
+//...SHEETH
+```
+
 ## Что есть сейчас?
 
 * Анимации прозрачности
@@ -37,3 +88,4 @@ node animationsCodeGen.js json_файл_из_ae.json
 
 Перемещение и масштабирование пока всегда использует XY даже если вторая координата
 не меняется (надо будет поправить).
+
