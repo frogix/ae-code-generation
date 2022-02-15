@@ -118,7 +118,7 @@ function getPropertyKeyframes(property)
 
         propKeyFrames.push({
             frameIndex: timeToFrame(time),
-            value: adjustValueByType(value, property.name)
+            value: adjustValueByType(value, property)
         });
     }
 
@@ -126,17 +126,16 @@ function getPropertyKeyframes(property)
 }
 
 
-function adjustValueByType (value, propertyName)
+function adjustValueByType (value, property)
 {
     var adjustedValue = value;
-    var adjustFunction;
 
-    switch (propertyName)
+    switch (property.matchName)
     {
-        case "Scale":
+        case "ADBE Scale":
             adjustedValue = value.map(percentToFixedFraction);
             break;
-        case "Opacity":
+        case "ADBE Opacity":
             adjustedValue = percentToFixedFraction(value);
             break;
     }
