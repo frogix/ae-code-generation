@@ -91,7 +91,7 @@ l_gut.i_addAnimation(l_udo, GUTimeline.i_SET_SCALE_XY, [1, 1],
 
 ## Что можно добавить?
 
-- [ ] Переводить SCALE_XY в SCALE, SCALE_X, SCALE_Y, где это возможно
+- [ ] Переводить SCALE_XY в SCALE, SCALE_X, SCALE_Y, + аналогично для Position где это возможно
 - [ ] Добавить Ease-параметры
 - [ ] Пересмотреть код для setVisible (не добавлять его, если не нужно)
 - [ ] Добавить парсинг и генерацию кода для режимов наложения (BlendingMode)
