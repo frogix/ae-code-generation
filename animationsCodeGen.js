@@ -12,8 +12,11 @@ const path = require('path');
 
 const PROPERTIES_KEY_MAP = {
     'scale': 'SCALE_XY',
+    'scale_1d': 'SCALE',
     'opacity': 'ALPHA',
     'position': 'XY',
+    'position_x': 'X',
+    'position_y': 'Y',
     'rotation': 'ROTATION_IN_DEGREES'
 };
 
@@ -162,7 +165,7 @@ function normalizeCompObj(compObj)
     compObj = convertPositionsToRelative(compObj);
     compObj = normalize(compObj);
 
-    // compObj = convertComp2dAnimationsTo1dIfPossible(compObj);
+    compObj = convertComp2dAnimationsTo1dIfPossible(compObj);
 
     const layers = compObj.layers;
 
@@ -174,7 +177,9 @@ function convertComp2dAnimationsTo1dIfPossible(compObj)
 {
     let layers = compObj.layers;
 
-    layers = layers.map(convertLayer2dAnimationsTo1dIfPossible);
+    compObj.layers = layers.map(convertLayer2dAnimationsTo1dIfPossible);
+
+    return compObj;
 }
 
 
@@ -182,26 +187,75 @@ function convertLayer2dAnimationsTo1dIfPossible(layer)
 {
     let animations = layer.animationsArray;
 
-    animations = animations.map(convertAnimation2dTo1dIfPossible);
+    layer.animationsArray = animations.map(convert2dAnimationTo1dIfPossible);
+
+    return layer;
 }
 
-
-function convertAnimation2dAnimationsTo1dIfPossible(animation)
+function convert2dAnimationTo1dIfPossible(animation)
 {
     if (!(animation.name === 'position' || animation.name === 'scale'))
     {
         return animation;
     }
 
-    let keyframes = animaion.keyframes;
+    let keyframes = animation.keyframes;
 
-    for (var i = 0; i < 2; i++)
+    const keyframeValues = keyframes.map(kf => kf.value);
+
+    const frameIndexes = keyframes.map(kf => kf.frameIndex);
+
+    if (animation.name === 'scale')
     {
-        let vals = keyframes.map(keyframe.value[i]);
+        const equalPairs = keyframeValues.filter(xyPair => xyPair[0] === xyPair[1]);
+        if (equalPairs.length === keyframeValues.length)
+        {
+            animation.keyframes = updateKeyframesValues(
+                keyframes,
+                keyframes.map(kf => kf.value[0])
+            );
 
-        // if (isConstArray(vals))
+            animation.name = 'scale_1d';
 
+            return animation;
+        }
     }
+
+    var xValues = keyframeValues.map(keyframeValue => keyframeValue[0]); 
+    var yValues = keyframeValues.map(keyframeValue => keyframeValue[1]); 
+
+    let nameSuffix = '';
+
+    if (isConstArray(xValues))
+    {
+        nameSuffix = '_y';
+        keyframes = updateKeyframesValues(keyframes, yValues);
+    }
+    else if (isConstArray(yValues))
+    {
+        nameSuffix = '_x';
+        keyframes = updateKeyframesValues(keyframes, xValues);
+    }
+    
+    if (nameSuffix)
+    {
+        animation.name += nameSuffix;
+        animation.keyframes = keyframes;
+    }
+
+    return animation;
+}
+
+function updateKeyframesValues(keyframes, newValues)
+{
+    const frameIndexes = keyframes.map(kf => kf.frameIndex);
+
+    return newValues.map((value, index) => {
+        return {
+            frameIndex: frameIndexes[index],
+            value: value
+        };
+    }) 
 }
 
 function isConstArray(array)
@@ -387,8 +441,10 @@ function genKeyframesStrings (keyframes)
         outputArray.push(prevFrameIndex); // delay before start
     }
 
-    for (let keyframe of keyframes)
+    for (var i = 0; i < keyframes.length; i++)
     {
+        keyframe = keyframes[i];
+
         let frameDelta = keyframe.frameIndex - prevFrameIndex;
         prevFrameIndex = keyframe.frameIndex;
         let value = keyframe.value;
@@ -400,16 +456,51 @@ function genKeyframesStrings (keyframes)
 
         value = trimValueArrayIfNeeded(value);
 
+        // replace two equal keyframes with pause
+        if (i > 0)
+        {
+            let prevValue = keyframes[i-1].value;
+
+            if (deepEqual(value, prevValue))
+            {
+                outputArray.push(frameDelta)
+                continue;
+            }
+        }
+
         let frameArray = [];
 
         frameArray.push(toString(value));
         frameArray.push(frameDelta);
 
-
         outputArray.push(toString(frameArray));
     }
 
     return outputArray.join(',\n\t\t');
+}
+
+function deepEqual (x, y) {
+  if (x === y) {
+    return true;
+  }
+  else if ((typeof x == "object" && x != null) && (typeof y == "object" && y != null)) {
+    if (Object.keys(x).length != Object.keys(y).length)
+      return false;
+
+    for (var prop in x) {
+      if (y.hasOwnProperty(prop))
+      {  
+        if (! deepEqual(x[prop], y[prop]))
+          return false;
+      }
+      else
+        return false;
+    }
+    
+    return true;
+  }
+  else 
+    return false;
 }
 //...animations code
 
