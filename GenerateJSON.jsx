@@ -97,7 +97,7 @@ function parseLayerInfo(layer)
         layerObj.rotation = transformObj.rotation.value;
     }
 
-    layerObj.isBlendingNormal = layerObj.blendingMode === BlendingMode.NORMAL;
+    layerObj.isBlendingNormal = layer.blendingMode === BlendingMode.NORMAL;
 
     return layerObj;
 }
@@ -105,6 +105,26 @@ function parseLayerInfo(layer)
 function timeToFrame(time)
 {
     return Math.floor(FRAMES_PER_SECOND * time);
+}
+
+var MIN_INFLUENCE_FOR_EASE = 20; // in percent
+
+function isInEase(property, keyIndex) {
+     //NOTE: speed is completely ignored here
+     
+     //  assume that all XY (if there are) have identical eases
+     var ease = property.keyInTemporalEase(keyIndex)[0];
+     
+     return ease.influence > MIN_INFLUENCE_FOR_EASE;
+}
+
+function isOutEase(property, keyIndex) {     
+     //NOTE: speed is completely ignored here
+     
+     //  assume that all XY (if there are) have identical eases
+     var ease = property.keyOutTemporalEase(keyIndex)[0];
+     
+     return ease.influence > MIN_INFLUENCE_FOR_EASE;
 }
 
 function getPropertyKeyframes(property)
@@ -117,6 +137,8 @@ function getPropertyKeyframes(property)
         var value = property.keyValue(i);
 
         propKeyFrames.push({
+            isInEase: isInEase(property, i),
+            isOutEase: isOutEase(property, i),
             frameIndex: timeToFrame(time),
             value: adjustValueByType(value, property)
         });

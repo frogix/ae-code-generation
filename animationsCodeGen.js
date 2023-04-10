@@ -1,5 +1,3 @@
-//TODO: Position transform: check if one of coord is static, rm it from output
-//      and use appropriate sigle tranformation (_X or _Y)
 //TODO: inject visibility code into timelines
 //TODO: wiggle animations?
 //TODO: asset init code (with initial position, rotation, blending, anchor)
@@ -51,10 +49,11 @@ function genLayerInitCode (layer)
 
     strings.push(genGetAssetLoadLine(layer));
 
-    // strings.push(genBlendingLine(layer));
+    strings.push(genBlendingLine(layer));
     strings.push(genAnchorPointLine(layer));
     strings.push(genPositionLine(layer));
     strings.push(genOpacityLine(layer));
+    strings.push(genRotationLine(layer));
     strings.push(genVisibilityLine(layer));
     strings.push(genScaleLine(layer));
     strings.push(genAddToParentLine(layer));
@@ -84,6 +83,11 @@ function genGetAssetLoadLine (layer)
 function genBlendingLine (layer)
 {
     return (layer.isBlendingNormal) ? '' : `l_udo.i_setAdditiveBlendingMode();`;
+}
+
+function genRotationLine (layer)
+{
+    return (layer.rotation === 0) ? '' : `l_udo.i_setRotationInDegrees(${layer.rotation});`;
 }
 
 function genOpacityLine (layer)
@@ -221,8 +225,8 @@ function convert2dAnimationTo1dIfPossible(animation)
         }
     }
 
-    var xValues = keyframeValues.map(keyframeValue => keyframeValue[0]); 
-    var yValues = keyframeValues.map(keyframeValue => keyframeValue[1]); 
+    var xValues = keyframeValues.map(keyframeValue => keyframeValue[0]);
+    var yValues = keyframeValues.map(keyframeValue => keyframeValue[1]);
 
     let nameSuffix = '';
 
@@ -236,7 +240,7 @@ function convert2dAnimationTo1dIfPossible(animation)
         nameSuffix = '_x';
         keyframes = updateKeyframesValues(keyframes, xValues);
     }
-    
+
     if (nameSuffix)
     {
         animation.name += nameSuffix;
@@ -252,10 +256,12 @@ function updateKeyframesValues(keyframes, newValues)
 
     return newValues.map((value, index) => {
         return {
+            isInEase: keyframes[index].isInEase,
+            isOutEase: keyframes[index].isOutEase,
             frameIndex: frameIndexes[index],
             value: value
         };
-    }) 
+    })
 }
 
 function isConstArray(array)
@@ -435,6 +441,9 @@ function genKeyframesStrings (keyframes)
 {
     let outputArray = [];
 
+    if (keyframes[0].value === 169)
+        var debug = true;
+
     let prevFrameIndex = keyframes[0].frameIndex;
     if (prevFrameIndex !== 0)
     {
@@ -443,11 +452,13 @@ function genKeyframesStrings (keyframes)
 
     for (var i = 0; i < keyframes.length; i++)
     {
-        keyframe = keyframes[i];
+        let keyframe = keyframes[i];
 
         let frameDelta = keyframe.frameIndex - prevFrameIndex;
         prevFrameIndex = keyframe.frameIndex;
         let value = keyframe.value;
+
+        let easing = "";
 
         if (frameDelta === 0)
         {
@@ -466,12 +477,27 @@ function genKeyframesStrings (keyframes)
                 outputArray.push(frameDelta)
                 continue;
             }
+
+            let hasStartEasing = keyframes[i-1].isOutEase;
+            let hasEndEasing = keyframe.isInEase;
+
+            if (hasStartEasing || hasEndEasing)
+            {
+                easing = "GUTimeline.i_EASE";
+                easing += hasStartEasing ? "_IN" : "";
+                easing += hasEndEasing ? "_OUT" : "";
+            }
         }
 
         let frameArray = [];
 
         frameArray.push(toString(value));
         frameArray.push(frameDelta);
+        
+        if (easing.length > 0)
+        {
+            frameArray.push(easing);
+        }
 
         outputArray.push(toString(frameArray));
     }
@@ -489,17 +515,17 @@ function deepEqual (x, y) {
 
     for (var prop in x) {
       if (y.hasOwnProperty(prop))
-      {  
+      {
         if (! deepEqual(x[prop], y[prop]))
           return false;
       }
       else
         return false;
     }
-    
+
     return true;
   }
-  else 
+  else
     return false;
 }
 //...animations code
@@ -550,6 +576,11 @@ function toSignedNumberString (num)
 function pascalize (str)
 {
     let camelized = camelize(str);
+    if (!camelized)
+    {
+        return str;
+    }
+
     return camelized[0].toUpperCase() + camelized.slice(1)
 }
 
